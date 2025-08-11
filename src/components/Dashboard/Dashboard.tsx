@@ -1,46 +1,69 @@
 import React from 'react';
-import { Plus, TrendingUp, MapPin, Calendar, DollarSign } from 'lucide-react';
+import { TrendingUp, MapPin, Calendar, DollarSign } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
-import { mockTrips, mockCities } from '../../data/mockData';
 import { format } from 'date-fns';
+
+// API helper
+import { fetchDashboard, type DashboardResponse } from '../../data/mockData';
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { user, setTrips } = useApp();
+  const { user, refreshKey } = useApp(); // 👈 listen for refresh
+
+  const [data, setData] = React.useState<DashboardResponse | null>(null);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const load = React.useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const d = await fetchDashboard();
+      setData(d);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   React.useEffect(() => {
-    setTrips(mockTrips);
-  }, [setTrips]);
+    load();
+  }, [load, refreshKey]); // 👈 re-fetch whenever a trip is created
+
+  if (loading) return <div className="text-slate-300">Loading dashboard…</div>;
+  if (error) return <div className="text-red-500">Error: {error}</div>;
+  if (!data) return null;
 
   const stats = [
     {
       label: 'Total Trips',
-      value: '12',
+      value: String(data.stats.totalTrips),
       icon: MapPin,
       color: 'from-blue-500 to-cyan-500',
       change: '+2 this month',
     },
     {
       label: 'Countries Visited',
-      value: '8',
+      value: String(data.stats.countriesVisited),
       icon: TrendingUp,
       color: 'from-purple-500 to-pink-500',
       change: '+3 this year',
     },
     {
       label: 'Upcoming Trips',
-      value: '2',
+      value: String(data.stats.upcomingTrips),
       icon: Calendar,
       color: 'from-green-500 to-emerald-500',
-      change: 'Next: June 15',
+      change: `Next: ${data.stats.nextTripLabel ?? '-'}`,
     },
     {
       label: 'Total Spent',
-      value: '$8.5k',
+      value: `$${data.stats.totalSpent}`,
       icon: DollarSign,
       color: 'from-orange-500 to-red-500',
-      change: '2024 trips',
+      change: 'All time',
     },
   ];
 
@@ -51,19 +74,13 @@ const Dashboard: React.FC = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-white mb-2">
-              Welcome back, {user?.name}! 👋
+              Welcome back, {user?.name ?? ''}! 👋
             </h1>
             <p className="text-slate-300">
               Ready to plan your next adventure? Let's explore the world together.
             </p>
           </div>
-          <button
-            onClick={() => navigate('/create-trip')}
-            className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-xl font-medium hover:shadow-lg transition-all duration-200 flex items-center space-x-2"
-          >
-            <Plus className="h-5 w-5" />
-            <span>Plan New Trip</span>
-          </button>
+          {/* Plan New Trip button removed */}
         </div>
       </div>
 
@@ -93,7 +110,7 @@ const Dashboard: React.FC = () => {
         <div className="bg-slate-800/50 backdrop-blur-lg border border-slate-700/50 rounded-xl p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold text-white">Recent Trips</h2>
-            <button 
+            <button
               onClick={() => navigate('/trips')}
               className="text-blue-400 hover:text-blue-300 text-sm font-medium"
             >
@@ -101,13 +118,9 @@ const Dashboard: React.FC = () => {
             </button>
           </div>
           <div className="space-y-4">
-            {mockTrips.slice(0, 3).map((trip) => (
+            {data.recentTrips.slice(0, 3).map((trip) => (
               <div key={trip.id} className="flex items-center space-x-4 p-4 bg-slate-700/30 rounded-lg hover:bg-slate-700/50 transition-all duration-200 cursor-pointer">
-                <img
-                  src={trip.coverPhoto}
-                  alt={trip.name}
-                  className="h-12 w-12 rounded-lg object-cover"
-                />
+                <img src={trip.coverPhoto} alt={trip.name} className="h-12 w-12 rounded-lg object-cover" />
                 <div className="flex-1">
                   <h3 className="font-medium text-white">{trip.name}</h3>
                   <p className="text-sm text-slate-400">
@@ -116,7 +129,7 @@ const Dashboard: React.FC = () => {
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-medium text-blue-400">${trip.estimatedCost}</p>
-                  <p className="text-xs text-slate-400">{trip.stops.length} stops</p>
+                  <p className="text-xs text-slate-400">{trip.stopsCount} stops</p>
                 </div>
               </div>
             ))}
@@ -132,13 +145,9 @@ const Dashboard: React.FC = () => {
             </button>
           </div>
           <div className="space-y-4">
-            {mockCities.slice(0, 4).map((city) => (
+            {data.popularDestinations.slice(0, 4).map((city) => (
               <div key={city.id} className="flex items-center space-x-4 p-4 bg-slate-700/30 rounded-lg hover:bg-slate-700/50 transition-all duration-200 cursor-pointer">
-                <img
-                  src={city.imageUrl}
-                  alt={city.name}
-                  className="h-12 w-12 rounded-lg object-cover"
-                />
+                <img src={city.imageUrl} alt={city.name} className="h-12 w-12 rounded-lg object-cover" />
                 <div className="flex-1">
                   <h3 className="font-medium text-white">{city.name}</h3>
                   <p className="text-sm text-slate-400">{city.country}</p>
