@@ -9,18 +9,26 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
-  const isAuthPage = location.pathname === '/login' || location.pathname === '/signup';
+  
+  // Don't show navbar/sidebar on auth pages
+  const isAuthPage = [
+    '/login', 
+    '/signup', 
+    '/forgot-password', 
+    '/reset-password', 
+    '/auth-callback'
+  ].includes(location.pathname);
   
   if (isAuthPage) {
     return (
-      <div className="min-h-screen bg-slate-900">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
         {children}
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 flex">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex">
       <Sidebar />
       <div className="flex-1 flex flex-col lg:ml-64">
         <Navbar />

@@ -13,31 +13,30 @@ export interface User {
 export interface Trip {
   id: string;
   name: string;
-  description: string;
+  description?: string;
+  coverPhoto?: string;
   startDate: string;
   endDate: string;
-  coverPhoto?: string;
-  totalBudget: number;
-  estimatedCost: number;
-  isPublic: boolean;
-  userId: string;
-  stops: TripStop[];
-  createdAt: string;
-  updatedAt: string;
+  destinationCity: string;
+  destinationCountry: string;
+  totalBudget?: number;
+  estimatedCost?: number;
+  isPublic?: boolean;
+  userId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  stops?: TripStop[];
 }
 
 export interface TripStop {
   id: string;
-  tripId: string;
   cityId: string;
-  city: City;
+  cityName: string;
+  country: string;
   arrivalDate: string;
   departureDate: string;
-  accommodation?: string;
-  accommodationCost: number;
-  transportCost: number;
   activities: Activity[];
-  order: number;
+  notes?: string;
 }
 
 export interface City {

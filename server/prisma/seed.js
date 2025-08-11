@@ -98,7 +98,9 @@ async function main() {
   });
 
   // No hardcoded trips - users start with a clean slate
-  console.log('✅ Seed complete - No hardcoded trips created');
+  // Removed sample trips - users will create their own trips
+
+  console.log('✅ Database seeded successfully!');
 }
 
 main().catch((e) => {

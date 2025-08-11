@@ -5,6 +5,8 @@ import { AppProvider } from './context/AppContext';
 import Layout from './components/Layout/Layout';
 import LoginForm from './components/Auth/LoginForm';
 import SignupForm from './components/Auth/SignupForm';
+import ForgotPassword from './components/Auth/ForgotPassword';
+import ResetPassword from './components/Auth/ResetPassword';
 import Dashboard from './components/Dashboard/Dashboard';
 import TripsList from './components/Trips/TripsList';
 import CreateTrip from './components/Trips/CreateTrip';
@@ -17,6 +19,7 @@ import SharedItinerary from './components/Shared/SharedItinerary';
 import UserProfile from './components/Profile/UserProfile';
 import AdminDashboard from './components/Admin/AdminDashboard';
 import BudgetBreakdown from './components/Budget/BudgetBreakdown';
+import AuthCallback from './components/Auth/AuthCallback';
 
 function App() {
   return (
@@ -27,6 +30,9 @@ function App() {
             <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="/login" element={<LoginForm />} />
             <Route path="/signup" element={<SignupForm />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/auth-callback" element={<AuthCallback />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/trips" element={<TripsList />} />
             <Route path="/trips/create" element={<CreateTrip />} />
@@ -39,6 +45,7 @@ function App() {
             <Route path="/profile" element={<UserProfile />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/budget" element={<BudgetBreakdown />} />
+            <Route path="/trips/:tripId/budget" element={<BudgetBreakdown />} />
             <Route path="/activities" element={<ActivitySearch />} />
             <Route path="/shared" element={<div className="text-white">Shared Trips - Coming Soon</div>} />
           </Routes>

@@ -1,47 +1,46 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Eye, EyeOff, Mail, Lock, User, Globe, ArrowRight, Sparkles, Shield, Zap, Camera } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import toast from 'react-hot-toast';
 
-const SignupForm = () => {
-  const navigate = useNavigate();
-  const { setUser } = useApp();
+const SignupForm: React.FC = () => {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-  });
+  const [isFocused, setIsFocused] = useState({ name: false, email: false, password: false, confirmPassword: false });
   const [profileImage, setProfileImage] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>('');
+  const { setUser } = useApp();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
+  // Animated background particles
+  const [particles, setParticles] = useState<Array<{id: number, x: number, y: number, size: number, speed: number}>>([]);
+
+  useEffect(() => {
+    // Generate floating particles
+    const newParticles = Array.from({ length: 20 }, (_, i) => ({
+      id: i,
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      size: Math.random() * 3 + 1,
+      speed: Math.random() * 0.5 + 0.1
+    }));
+    setParticles(newParticles);
+  }, []);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error('Image size must be less than 5MB');
-        return;
-      }
-      
-      if (!file.type.startsWith('image/')) {
-        toast.error('Please select an image file');
-        return;
-      }
-
       setProfileImage(file);
-      
-      // Create preview
       const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(e.target?.result as string);
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
       };
       reader.readAsDataURL(file);
     }
@@ -49,38 +48,40 @@ const SignupForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!name || !email || !password || !confirmPassword) {
+      toast.error('Please fill in all fields');
+      return;
+    }
 
-    if (formData.password !== formData.confirmPassword) {
+    if (password !== confirmPassword) {
       toast.error('Passwords do not match');
       return;
     }
 
-    if (formData.password.length < 6) {
-      toast.error('Password must be at least 6 characters');
+    if (password.length < 6) {
+      toast.error('Password must be at least 6 characters long');
       return;
     }
 
     setIsLoading(true);
+    
     try {
-      let avatarUrl = `https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2`;
-
+      let avatarUrl = '';
+      
       // Upload profile image if selected
       if (profileImage) {
-        const formDataImage = new FormData();
-        formDataImage.append('profileImage', profileImage);
-
+        const formData = new FormData();
+        formData.append('image', profileImage);
+        
         const uploadRes = await fetch('/api/auth/upload-profile-image', {
           method: 'POST',
-          body: formDataImage,
+          body: formData,
         });
-
+        
         if (uploadRes.ok) {
           const uploadData = await uploadRes.json();
           avatarUrl = uploadData.imageUrl;
-        } else {
-          toast.error('Failed to upload profile image');
-          setIsLoading(false);
-          return;
         }
       }
 
@@ -88,178 +89,377 @@ const SignupForm = () => {
       const res = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-        name: formData.name,
-        email: formData.email,
-          password: formData.password,
-        }),
+        body: JSON.stringify({ name, email, password }),
       });
-
+      
       if (!res.ok) {
         const { error } = await res.json().catch(() => ({ error: 'Signup failed' }));
         throw new Error(error);
       }
-
+      
       const data = await res.json();
       
-      // Update user with profile image
-      if (profileImage) {
-        const updateRes = await fetch('/api/auth/update-profile', {
+      // Update user avatar if image was uploaded
+      if (avatarUrl) {
+        await fetch('/api/auth/update-profile', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId: data.user.id,
+          body: JSON.stringify({ 
+            name, 
+            email, 
             avatar: avatarUrl,
+            preferences: { currency: 'USD', language: 'en', notifications: true }
           }),
         });
-
-        if (updateRes.ok) {
-          const updateData = await updateRes.json();
-          setUser(updateData.user);
-        } else {
-          setUser(data.user);
-        }
-      } else {
-        setUser(data.user);
       }
-
+      
+      setUser(data.user);
       toast.success('Account created successfully!');
       navigate('/dashboard');
     } catch (err: any) {
-      toast.error(err.message || 'Failed to create account');
+      toast.error(err.message || 'Signup failed');
     } finally {
       setIsLoading(false);
     }
   };
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Create your account
-          </h2>
-        </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            {/* Profile Image Upload */}
-            <div className="flex flex-col items-center space-y-4">
-              <div className="relative">
-                <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-gray-200">
-                  <img
-                    src={imagePreview || `https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2`}
-                    alt="Profile preview"
-                    className="w-full h-full object-cover"
-                  />
-            </div>
-                <label
-                  htmlFor="profile-image"
-                  className="absolute bottom-0 right-0 bg-blue-500 text-white rounded-full p-2 cursor-pointer hover:bg-blue-600 transition-colors"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                </label>
-                <input
-                  id="profile-image"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  className="hidden"
-                />
-          </div>
-              <p className="text-sm text-gray-500 text-center">
-                Click the + icon to upload your profile picture
-              </p>
-        </div>
+  const handleGoogleSignUp = () => {
+    toast.success('Google sign-up coming soon!');
+  };
 
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                Full Name
-              </label>
+  // Handle auth callback from Google OAuth
+  useEffect(() => {
+    const token = searchParams.get('token');
+    if (token) {
+      handleGoogleAuthCallback(token);
+    }
+  }, [searchParams]);
+
+  const handleGoogleAuthCallback = async (token: string) => {
+    try {
+      setIsGoogleLoading(true);
+      
+      // Verify token with backend
+      const response = await fetch('/api/auth/verify-token', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const { user } = await response.json();
+        
+        // Store token in localStorage
+        localStorage.setItem('token', token);
+        
+        // Update context
+        setUser(user);
+        
+        toast.success('Successfully logged in with Google!');
+        navigate('/dashboard');
+      } else {
+        throw new Error('Failed to verify token');
+      }
+    } catch (error) {
+      console.error('Google auth error:', error);
+      toast.error('Failed to authenticate with Google');
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
+
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+  return (
+    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      {/* Animated Background */}
+      <div className="absolute inset-0">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-pink-500/10" />
+        {particles.map((particle) => (
+          <div
+            key={particle.id}
+            className="absolute w-1 h-1 bg-white/20 rounded-full animate-pulse"
+            style={{
+              left: `${particle.x}%`,
+              top: `${particle.y}%`,
+              width: `${particle.size}px`,
+              height: `${particle.size}px`,
+              animationDuration: `${particle.speed}s`
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Main Content */}
+      <div className="relative z-10 min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full">
+          {/* Header with Animation */}
+          <div className="text-center mb-8">
+            <div className="flex justify-center mb-6">
+              <div className="relative group">
+                <div className="h-20 w-20 bg-gradient-to-br from-blue-500 via-purple-600 to-pink-500 rounded-3xl flex items-center justify-center shadow-2xl animate-pulse group-hover:scale-110 transition-transform duration-300">
+                  <Globe className="h-10 w-10 text-white group-hover:rotate-12 transition-transform duration-300" />
+                </div>
+                <div className="absolute -top-2 -right-2 h-6 w-6 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center animate-bounce">
+                  <Sparkles className="h-3 w-3 text-white" />
+                </div>
+              </div>
+            </div>
+            <h1 className="text-4xl font-bold text-white mb-3 bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
+              Join GlobeTrotter
+            </h1>
+            <p className="text-slate-300 text-lg">
+              Start your adventure today
+            </p>
+          </div>
+
+          {/* Form Card */}
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl hover:shadow-blue-500/10 transition-all duration-500">
+            <form className="space-y-6" onSubmit={handleSubmit}>
+              {/* Profile Image Upload */}
+              <div className="flex justify-center mb-6">
+                <div className="relative group cursor-pointer">
+                  <div className="h-20 w-20 rounded-full bg-gradient-to-br from-blue-500 via-purple-600 to-pink-500 p-0.5">
+                    <div className="h-full w-full rounded-full bg-slate-800/30 flex items-center justify-center overflow-hidden">
+                      {imagePreview ? (
+                        <img src={imagePreview} alt="Profile" className="h-full w-full object-cover" />
+                      ) : (
+                        <User className="h-8 w-8 text-slate-400" />
+                      )}
+                    </div>
+                  </div>
+                  <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                    <Camera className="h-6 w-6 text-white" />
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              {/* Name Field with Floating Placeholder */}
+              <div className="relative group">
+                <div className="absolute left-4 top-1/2 transform -translate-y-1/2 transition-all duration-300">
+                  <User className={`h-5 w-5 transition-all duration-300 ${isFocused.name ? 'text-blue-400 scale-110' : 'text-slate-400'}`} />
+                </div>
                 <input
                   id="name"
                   name="name"
                   type="text"
                   required
-                  value={formData.name}
-                  onChange={handleInputChange}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                  placeholder="Enter your full name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  onFocus={() => setIsFocused({ ...isFocused, name: true })}
+                  onBlur={() => setIsFocused({ ...isFocused, name: false })}
+                  className="w-full pl-12 pr-4 py-4 bg-slate-800/30 border border-slate-600/30 rounded-xl text-white placeholder-transparent focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300 backdrop-blur-sm peer group-hover:border-slate-500/50"
+                  placeholder="Enter your name"
                 />
-            </div>
+                <label 
+                  htmlFor="name" 
+                  className={`absolute left-12 top-4 text-slate-400 transition-all duration-300 pointer-events-none peer-focus:text-blue-400 peer-focus:text-sm peer-focus:-translate-y-6 peer-focus:translate-x-0 peer-[:not(:placeholder-shown)]:text-sm peer-[:not(:placeholder-shown)]:-translate-y-6 peer-[:not(:placeholder-shown)]:translate-x-0 ${isFocused.name ? 'text-blue-400 text-sm -translate-y-6 translate-x-0' : ''}`}
+                >
+                  Full Name
+                </label>
+              </div>
 
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email address
-              </label>
+              {/* Email Field with Floating Placeholder */}
+              <div className="relative group">
+                <div className="absolute left-4 top-1/2 transform -translate-y-1/2 transition-all duration-300">
+                  <Mail className={`h-5 w-5 transition-all duration-300 ${isFocused.email ? 'text-blue-400 scale-110' : 'text-slate-400'}`} />
+                </div>
                 <input
                   id="email"
                   name="email"
                   type="email"
-                autoComplete="email"
                   required
-                  value={formData.email}
-                  onChange={handleInputChange}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onFocus={() => setIsFocused({ ...isFocused, email: true })}
+                  onBlur={() => setIsFocused({ ...isFocused, email: false })}
+                  className="w-full pl-12 pr-4 py-4 bg-slate-800/30 border border-slate-600/30 rounded-xl text-white placeholder-transparent focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300 backdrop-blur-sm peer group-hover:border-slate-500/50"
                   placeholder="Enter your email"
                 />
-            </div>
+                <label 
+                  htmlFor="email" 
+                  className={`absolute left-12 top-4 text-slate-400 transition-all duration-300 pointer-events-none peer-focus:text-blue-400 peer-focus:text-sm peer-focus:-translate-y-6 peer-focus:translate-x-0 peer-[:not(:placeholder-shown)]:text-sm peer-[:not(:placeholder-shown)]:-translate-y-6 peer-[:not(:placeholder-shown)]:translate-x-0 ${isFocused.email ? 'text-blue-400 text-sm -translate-y-6 translate-x-0' : ''}`}
+                >
+                  Email Address
+                </label>
+              </div>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
+              {/* Password Field with Floating Placeholder */}
+              <div className="relative group">
+                <div className="absolute left-4 top-1/2 transform -translate-y-1/2 transition-all duration-300">
+                  <Lock className={`h-5 w-5 transition-all duration-300 ${isFocused.password ? 'text-blue-400 scale-110' : 'text-slate-400'}`} />
+                </div>
                 <input
                   id="password"
                   name="password"
-                type="password"
-                autoComplete="new-password"
+                  type={showPassword ? 'text' : 'password'}
                   required
-                  value={formData.password}
-                  onChange={handleInputChange}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Enter your password"
-              />
-            </div>
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onFocus={() => setIsFocused({ ...isFocused, password: true })}
+                  onBlur={() => setIsFocused({ ...isFocused, password: false })}
+                  className="w-full pl-12 pr-12 py-4 bg-slate-800/30 border border-slate-600/30 rounded-xl text-white placeholder-transparent focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300 backdrop-blur-sm peer group-hover:border-slate-500/50"
+                  placeholder="Enter your password"
+                />
+                <label 
+                  htmlFor="password" 
+                  className={`absolute left-12 top-4 text-slate-400 transition-all duration-300 pointer-events-none peer-focus:text-blue-400 peer-focus:text-sm peer-focus:-translate-y-6 peer-focus:translate-x-0 peer-[:not(:placeholder-shown)]:text-sm peer-[:not(:placeholder-shown)]:-translate-y-6 peer-[:not(:placeholder-shown)]:translate-x-0 ${isFocused.password ? 'text-blue-400 text-sm -translate-y-6 translate-x-0' : ''}`}
+                >
+                  Password
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-white transition-all duration-200 hover:scale-110"
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
 
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                Confirm Password
-              </label>
+              {/* Confirm Password Field with Floating Placeholder */}
+              <div className="relative group">
+                <div className="absolute left-4 top-1/2 transform -translate-y-1/2 transition-all duration-300">
+                  <Lock className={`h-5 w-5 transition-all duration-300 ${isFocused.confirmPassword ? 'text-blue-400 scale-110' : 'text-slate-400'}`} />
+                </div>
                 <input
                   id="confirmPassword"
                   name="confirmPassword"
-                type="password"
-                autoComplete="new-password"
+                  type={showConfirmPassword ? 'text' : 'password'}
                   required
-                  value={formData.confirmPassword}
-                  onChange={handleInputChange}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  onFocus={() => setIsFocused({ ...isFocused, confirmPassword: true })}
+                  onBlur={() => setIsFocused({ ...isFocused, confirmPassword: false })}
+                  className="w-full pl-12 pr-12 py-4 bg-slate-800/30 border border-slate-600/30 rounded-xl text-white placeholder-transparent focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300 backdrop-blur-sm peer group-hover:border-slate-500/50"
                   placeholder="Confirm your password"
                 />
-            </div>
-          </div>
+                <label 
+                  htmlFor="confirmPassword" 
+                  className={`absolute left-12 top-4 text-slate-400 transition-all duration-300 pointer-events-none peer-focus:text-blue-400 peer-focus:text-sm peer-focus:-translate-y-6 peer-focus:translate-x-0 peer-[:not(:placeholder-shown)]:text-sm peer-[:not(:placeholder-shown)]:-translate-y-6 peer-[:not(:placeholder-shown)]:translate-x-0 ${isFocused.confirmPassword ? 'text-blue-400 text-sm -translate-y-6 translate-x-0' : ''}`}
+                >
+                  Confirm Password
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-white transition-all duration-200 hover:scale-110"
+                >
+                  {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
 
-          <div>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              {/* Animated Neon Submit Button */}
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="group relative w-full flex justify-center py-4 px-6 border border-transparent text-sm font-semibold rounded-xl text-white bg-gradient-to-r from-blue-500 via-purple-600 to-pink-500 hover:from-blue-600 hover:via-purple-700 hover:to-pink-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 overflow-hidden"
+              >
+                {/* Neon glow effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-600 to-pink-500 opacity-0 group-hover:opacity-20 transition-opacity duration-300 blur-xl"></div>
+                
+                {isLoading ? (
+                  <div className="flex items-center relative z-10">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                    Creating account...
+                  </div>
+                ) : (
+                  <div className="flex items-center relative z-10">
+                    <span>Create Account</span>
+                    <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform duration-200" />
+                  </div>
+                )}
+              </button>
+            </form>
+
+            {/* Divider */}
+            <div className="mt-8 mb-6">
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-slate-600/30" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-4 bg-slate-900/50 text-slate-400">Or continue with</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Google Sign-up Button */}
+            <button 
+              onClick={handleGoogleSignUp}
+              disabled={isGoogleLoading}
+              className="w-full flex items-center justify-center px-4 py-3 border border-slate-600/30 rounded-xl text-slate-300 hover:bg-slate-800/30 transition-all duration-200 group hover:scale-105 hover:border-slate-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? 'Creating account...' : 'Sign up'}
+              {isGoogleLoading ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <>
+                  <svg className="h-5 w-5" viewBox="0 0 24 24">
+                    <path
+                      fill="currentColor"
+                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                    />
+                    <path
+                      fill="currentColor"
+                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                    />
+                    <path
+                      fill="currentColor"
+                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                    />
+                    <path
+                      fill="currentColor"
+                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                    />
+                  </svg>
+                  <span className="text-sm font-medium group-hover:text-white transition-colors duration-200">Sign up with Google</span>
+                </>
+              )}
             </button>
           </div>
 
-          <div className="text-center">
-            <p className="text-sm text-gray-600">
+          {/* Sign In Link */}
+          <div className="text-center mt-8">
+            <p className="text-slate-400">
               Already have an account?{' '}
-              <a href="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
+              <Link 
+                to="/login" 
+                className="font-semibold text-blue-400 hover:text-blue-300 transition-all duration-200 flex items-center justify-center group hover:scale-105"
+              >
                 Sign in
-              </a>
+                <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform duration-200" />
+              </Link>
             </p>
           </div>
-        </form>
+
+          {/* Features */}
+          <div className="mt-12 grid grid-cols-3 gap-4 text-center">
+            <div className="flex flex-col items-center group cursor-pointer">
+              <div className="h-10 w-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl flex items-center justify-center mb-2 group-hover:scale-110 transition-transform duration-200">
+                <Shield className="h-5 w-5 text-white" />
+              </div>
+              <p className="text-xs text-slate-400 group-hover:text-slate-300 transition-colors duration-200">Secure</p>
+            </div>
+            <div className="flex flex-col items-center group cursor-pointer">
+              <div className="h-10 w-10 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center mb-2 group-hover:scale-110 transition-transform duration-200">
+                <Zap className="h-5 w-5 text-white" />
+              </div>
+              <p className="text-xs text-slate-400 group-hover:text-slate-300 transition-colors duration-200">Fast</p>
+            </div>
+            <div className="flex flex-col items-center group cursor-pointer">
+              <div className="h-10 w-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center mb-2 group-hover:scale-110 transition-transform duration-200">
+                <Sparkles className="h-5 w-5 text-white" />
+              </div>
+              <p className="text-xs text-slate-400 group-hover:text-slate-300 transition-colors duration-200">Modern</p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

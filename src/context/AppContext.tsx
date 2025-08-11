@@ -5,7 +5,8 @@ import { fetchMyTrips } from '../data/mockData';
 interface AppContextType {
   user: User | null;
   setUser: (user: User | null) => void;
-  logout: () => void; // Add logout function
+  logout: () => void;
+  login: (user: User) => void;
 
   trips: Trip[];
   setTrips: (trips: Trip[]) => void;
@@ -45,6 +46,35 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [refreshKey, setRefreshKey] = useState(0);
   const bumpRefresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
+  // Add this to handle Google auth tokens
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token && !user) {
+      verifyToken(token);
+    }
+  }, []);
+
+  const verifyToken = async (token: string) => {
+    try {
+      const response = await fetch('/api/auth/verify-token', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const { user } = await response.json();
+        setUser(user);
+      } else {
+        localStorage.removeItem('token');
+      }
+    } catch (error) {
+      console.error('Token verification error:', error);
+      localStorage.removeItem('token');
+    }
+  };
+
   // Logout function to properly clear user data
   const logout = useCallback(() => {
     console.log('Logging out user, clearing all data');
@@ -52,6 +82,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     setTrips([]);
     setCurrentTrip(null);
     setRefreshKey(0);
+    localStorage.removeItem('token');
+  }, []);
+
+  // Login function
+  const login = useCallback((user: User) => {
+    setUser(user);
   }, []);
 
   // Load user's trips when user changes
@@ -59,10 +95,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     const loadUserTrips = async () => {
       if (user?.id) {
         try {
-          console.log('Loading trips for user:', user.id);
           setIsLoading(true);
           const userTrips = await fetchMyTrips(user.id);
-          console.log('Loaded trips:', userTrips.length);
           setTrips(userTrips);
         } catch (error) {
           console.error('Failed to load user trips:', error);
@@ -71,7 +105,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           setIsLoading(false);
         }
       } else {
-        console.log('No user ID, clearing trips');
         // Clear trips when user logs out
         setTrips([]);
         setCurrentTrip(null);
@@ -85,6 +118,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     user,
     setUser,
     logout,
+    login,
     trips,
     setTrips,
     currentTrip,
