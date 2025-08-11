@@ -5,6 +5,8 @@ import { AppProvider } from './context/AppContext';
 import Layout from './components/Layout/Layout';
 import LoginForm from './components/Auth/LoginForm';
 import SignupForm from './components/Auth/SignupForm';
+import ForgotPassword from './components/Auth/ForgotPassword';
+import ResetPassword from './components/Auth/ResetPassword';
 import Dashboard from './components/Dashboard/Dashboard';
 import TripsList from './components/Trips/TripsList';
 import CreateTrip from './components/Trips/CreateTrip';
@@ -27,6 +29,8 @@ function App() {
             <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="/login" element={<LoginForm />} />
             <Route path="/signup" element={<SignupForm />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/trips" element={<TripsList />} />
             <Route path="/trips/create" element={<CreateTrip />} />

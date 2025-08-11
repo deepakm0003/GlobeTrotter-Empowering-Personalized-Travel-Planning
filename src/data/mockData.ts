@@ -50,14 +50,10 @@ async function api<T>(path: string, init?: RequestInit, userId?: string): Promis
     headers.set('x-user-id', userId);
   }
 
-  console.log(`🌐 API Request: ${path}`, { userId, headers: Object.fromEntries(headers.entries()) });
-
   const res = await fetch(path, {
     headers,
     ...init,
   });
-  
-  console.log(`📡 API Response: ${path}`, { status: res.status, ok: res.ok });
   
   if (!res.ok) {
     const text = await res.text().catch(() => "");
@@ -66,7 +62,6 @@ async function api<T>(path: string, init?: RequestInit, userId?: string): Promis
   }
   
   const data = await res.json();
-  console.log(`✅ API Success: ${path}`, data);
   return data;
 }
 

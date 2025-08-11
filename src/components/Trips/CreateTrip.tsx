@@ -55,7 +55,7 @@ const CreateTrip: React.FC = () => {
     try {
       const res = await fetch('/api/trips', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-user-id': user.id },
         body: JSON.stringify(payload),
       });
       if (!res.ok) {

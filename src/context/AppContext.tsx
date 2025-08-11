@@ -59,10 +59,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     const loadUserTrips = async () => {
       if (user?.id) {
         try {
-          console.log('Loading trips for user:', user.id);
           setIsLoading(true);
           const userTrips = await fetchMyTrips(user.id);
-          console.log('Loaded trips:', userTrips.length);
           setTrips(userTrips);
         } catch (error) {
           console.error('Failed to load user trips:', error);
@@ -71,7 +69,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           setIsLoading(false);
         }
       } else {
-        console.log('No user ID, clearing trips');
         // Clear trips when user logs out
         setTrips([]);
         setCurrentTrip(null);

@@ -5,6 +5,8 @@ const bcrypt = require('bcryptjs');
 const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
+const crypto = require('crypto');
+const { sendEmail, verifyEmailConfig } = require('./config/email');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -277,14 +279,25 @@ app.get('/api/auth/me', async (req, res) => {
 
 /** ---- Trips CRUD (minimal) ---- */
 
+// Helper to extract userId consistently
+function getUserId(req) {
+  return req.header('x-user-id') || req.query.userId || (req.body && req.body.userId);
+}
+
+function requireUserId(req, res) {
+  const uid = getUserId(req);
+  if (!uid) {
+    res.status(400).json({ error: 'User ID is required' });
+    return null;
+  }
+  return uid;
+}
+
 // List trips for specific user
 app.get('/api/trips', async (req, res) => {
   try {
-    const userId = req.query.userId || req.header('x-user-id');
-    
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' });
-    }
+    const userId = requireUserId(req, res);
+    if (!userId) return;
 
     const trips = await prisma.trip.findMany({ 
       where: { userId: userId },
@@ -300,11 +313,8 @@ app.get('/api/trips', async (req, res) => {
 // Get user's trips
 app.get('/api/trips/my', async (req, res) => {
   try {
-    const userId = req.query.userId || req.header('x-user-id');
-    
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' });
-    }
+    const userId = requireUserId(req, res);
+    if (!userId) return;
 
     const trips = await prisma.trip.findMany({ 
       where: { userId: userId },
@@ -325,12 +335,10 @@ app.post('/api/trips', async (req, res) => {
       startDate, endDate,
       destinationCity, destinationCountry,
       totalBudget, estimatedCost,
-      userId
     } = req.body;
 
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' });
-    }
+    const userId = requireUserId(req, res);
+    if (!userId) return;
 
     const trip = await prisma.trip.create({
       data: {
@@ -363,11 +371,8 @@ app.get('/api/cities', async (_req, res) => {
 /** ---- Dashboard aggregate ---- */
 app.get('/api/dashboard', async (req, res) => {
   try {
-    const userId = req.query.userId || req.header('x-user-id');
-    
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' });
-    }
+    const userId = requireUserId(req, res);
+    if (!userId) return;
 
     const now = new Date();
 
@@ -425,11 +430,11 @@ app.get('/api/dashboard', async (req, res) => {
       coverPhoto: t.coverPhoto || '',
       startDate: t.startDate.toISOString(),
       endDate: t.endDate.toISOString(),
-      estimatedCost: 0,     // if you later add a budgets table, compute real sum
-      stopsCount: 0,        // if you add stops table, compute count
+      estimatedCost: 0,
+      stopsCount: 0,
     }));
 
-    const popularDestinations = topCities.map((c, i) => ({
+    const popularDestinations = topCities.map((c) => ({
       id: c.id,
       name: c.name,
       country: c.country,
@@ -442,6 +447,162 @@ app.get('/api/dashboard', async (req, res) => {
   } catch (error) {
     console.error('Dashboard error:', error);
     res.status(500).json({ error: 'Failed to load dashboard' });
+  }
+});
+
+// Forgot password endpoint
+app.post('/api/auth/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    // Find user by email
+    const user = await prisma.user.findUnique({
+      where: { email: email.toLowerCase() }
+    });
+
+    if (!user) {
+      // Don't reveal if user exists or not for security
+      return res.json({ message: 'If an account with that email exists, a reset link has been sent.' });
+    }
+
+    // Generate reset token
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
+
+    // Delete any existing reset tokens for this user
+    await prisma.passwordReset.deleteMany({
+      where: { userId: user.id }
+    });
+
+    // Create new reset token
+    await prisma.passwordReset.create({
+      data: {
+        email: user.email,
+        token: token,
+        expiresAt: expiresAt,
+        userId: user.id
+      }
+    });
+
+    // Generate reset URL
+    const resetUrl = `http://localhost:5174/reset-password?token=${token}`;
+    
+    // Send email
+    const emailResult = await sendEmail(user.email, 'passwordReset', {
+      resetUrl: resetUrl,
+      userName: user.name
+    });
+
+    if (emailResult.success) {
+      console.log(`✅ Password reset email sent to ${email}`);
+      
+      // Log the email sending
+      appendJsonArray('password_resets.json', {
+        timestamp: new Date().toISOString(),
+        action: 'forgot_password_request',
+        userId: user.id,
+        email: user.email,
+        success: true,
+        messageId: emailResult.messageId
+      });
+
+      res.json({ 
+        message: 'If an account with that email exists, a reset link has been sent.',
+        emailSent: true
+      });
+    } else {
+      console.error('❌ Failed to send email:', emailResult.error);
+      
+      // Log the email failure
+      appendJsonArray('password_resets.json', {
+        timestamp: new Date().toISOString(),
+        action: 'forgot_password_request',
+        userId: user.id,
+        email: user.email,
+        success: false,
+        error: emailResult.error
+      });
+
+      // For demo purposes, still return the reset URL in console
+      console.log(`Demo mode - Reset URL for ${email}: ${resetUrl}`);
+      
+      res.json({ 
+        message: 'If an account with that email exists, a reset link has been sent.',
+        emailSent: false,
+        resetUrl: resetUrl // Remove this in production
+      });
+    }
+
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({ error: 'Failed to process password reset request' });
+  }
+});
+
+// Reset password endpoint
+app.post('/api/auth/reset-password', async (req, res) => {
+  try {
+    const { token, password } = req.body;
+
+    if (!token || !password) {
+      return res.status(400).json({ error: 'Token and password are required' });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters long' });
+    }
+
+    // Find the reset token
+    const resetRecord = await prisma.passwordReset.findUnique({
+      where: { token: token },
+      include: { user: true }
+    });
+
+    if (!resetRecord) {
+      return res.status(400).json({ error: 'Invalid or expired reset token' });
+    }
+
+    if (resetRecord.used) {
+      return res.status(400).json({ error: 'Reset token has already been used' });
+    }
+
+    if (resetRecord.expiresAt < new Date()) {
+      return res.status(400).json({ error: 'Reset token has expired' });
+    }
+
+    // Hash the new password
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    // Update user's password
+    await prisma.user.update({
+      where: { id: resetRecord.userId },
+      data: { passwordHash: passwordHash }
+    });
+
+    // Mark reset token as used
+    await prisma.passwordReset.update({
+      where: { id: resetRecord.id },
+      data: { used: true }
+    });
+
+    // Log the password change
+    appendJsonArray('password_resets.json', {
+      timestamp: new Date().toISOString(),
+      action: 'password_reset',
+      userId: resetRecord.userId,
+      email: resetRecord.email,
+      success: true
+    });
+
+    res.json({ message: 'Password reset successfully' });
+
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({ error: 'Failed to reset password' });
   }
 });
 
