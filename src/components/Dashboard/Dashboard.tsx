@@ -26,8 +26,9 @@ const Dashboard: React.FC = () => {
         return;
       }
       
-      console.log('Loading dashboard for user:', user.id);
+      console.log('🔄 Loading dashboard for user:', user.id, 'Name:', user.name, 'Email:', user.email);
       const d = await fetchDashboard(user.id);
+      console.log('📊 Dashboard data loaded:', d);
       setData(d);
     } catch (e) {
       console.error('Dashboard load error:', e);
@@ -99,6 +100,21 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-8">
+      {/* User Info Debug Section */}
+      <div className="bg-slate-800/30 border border-slate-700/50 rounded-xl p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-medium text-slate-300">Current User</h3>
+            <p className="text-xs text-slate-400">ID: {user?.id}</p>
+            <p className="text-xs text-slate-400">Email: {user?.email}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-xs text-slate-400">Total Trips: {data?.stats.totalTrips || 0}</p>
+            <p className="text-xs text-slate-400">Countries: {data?.stats.countriesVisited || 0}</p>
+          </div>
+        </div>
+      </div>
+
       {/* Welcome Section */}
       <div className="bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 border border-blue-500/20 rounded-2xl p-8">
         <div className="flex items-center justify-between">
