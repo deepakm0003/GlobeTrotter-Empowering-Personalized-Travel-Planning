@@ -1,0 +1,90 @@
+[
+  {
+    "id": "cme72u0hi0000y5xcicgi50iq",
+    "name": "Deepak meena",
+    "email": "deepakbyadwal1234@gmail.com",
+    "preferences": {
+      "currency": "USD",
+      "language": "en",
+      "notifications": true
+    },
+    "createdAt": "2025-08-11T12:16:25.602Z"
+  },
+  {
+    "timestamp": "2025-08-11T12:38:57.746Z",
+    "action": "signup",
+    "userId": "cme73mzsy0000y5podpdeidcr",
+    "email": "asadas@gmail.com",
+    "name": "asd"
+  },
+  {
+    "timestamp": "2025-08-11T13:06:36.991Z",
+    "action": "signup",
+    "userId": "cme74mk3g0001y5po91cpxhtp",
+    "email": "sadas@gmail.com",
+    "name": "asda"
+  },
+  {
+    "timestamp": "2025-08-11T13:14:43.490Z",
+    "action": "signup",
+    "userId": "cme74wzh70002y5poedn7b9ny",
+    "email": "qwe@gmail.com",
+    "name": "asdqwe"
+  },
+  {
+    "timestamp": "2025-08-11T13:19:41.689Z",
+    "action": "signup",
+    "userId": "cme753dkl0003y5pofj9aqm7p",
+    "email": "bfgijdgkdf@gmail.com",
+    "name": "asdwerrrrwrwerwe"
+  },
+  {
+    "timestamp": "2025-08-11T13:22:30.191Z",
+    "action": "signup",
+    "userId": "cme756zl20004y5pokl1p5vyf",
+    "email": "safsdghfngdsghdf@gmail.com",
+    "name": "asqwhgufsiolkdfsdfs"
+  },
+  {
+    "timestamp": "2025-08-11T13:26:03.230Z",
+    "action": "signup",
+    "userId": "cme75bjyu0005y5poqwu5sk32",
+    "email": "deepak23188@iiitd.ac.in",
+    "name": "deepak23188"
+  },
+  {
+    "timestamp": "2025-08-11T13:38:04.941Z",
+    "action": "signup",
+    "userId": "cme75r0ua0007y5po8d82jo8b",
+    "email": "k@gmail.com",
+    "name": "kartik"
+  },
+  {
+    "timestamp": "2025-08-11T15:08:47.224Z",
+    "action": "signup",
+    "userId": "cme78zo4h00006gksjjh88b02",
+    "email": "kartik41884188@gmail.com",
+    "name": "kartik234"
+  },
+  {
+    "timestamp": "2025-08-11T15:11:45.145Z",
+    "action": "signup",
+    "userId": "cme793hel00026gqcy606s0qq",
+    "email": "KARTIKKKKKKKKKKK@gmail.com",
+    "name": "KARTIKKKKKKKKK"
+  },
+  {
+    "timestamp": "2025-08-11T15:14:35.824Z",
+    "action": "signup",
+    "userId": "cme79754500026gzwyvle50hb",
+    "email": "ASDFADSF@gmail.com",
+    "name": "SEAFASDFASFDAS"
+  },
+  {
+    "timestamp": "2025-08-11T15:17:24.183Z",
+    "action": "signup",
+    "userId": "cme79ar0600006gm87f9th7h1",
+    "email": "Kartikharitwal41888@gmail.com",
+    "name": "Kartik Haritwal 213"
+  }
+]
