@@ -39,43 +39,61 @@ export type DashboardResponse = {
 /** -----------------------------
  *  Small fetch wrapper
  *  ----------------------------- */
-async function api<T>(path: string, init?: RequestInit): Promise<T> {
+async function api<T>(path: string, init?: RequestInit, userId?: string): Promise<T> {
+  const headers = new Headers({
+    "Content-Type": "application/json",
+    ...(init?.headers || {}),
+  });
+
+  // Add user ID to headers if provided
+  if (userId) {
+    headers.set('x-user-id', userId);
+  }
+
+  console.log(`🌐 API Request: ${path}`, { userId, headers: Object.fromEntries(headers.entries()) });
+
   const res = await fetch(path, {
-    headers: {
-      "Content-Type": "application/json",
-      // If you’re using mockAuth on the backend, you can pass x-user-id here:
-      // "x-user-id": "<seeded-user-id>"
-      ...(init?.headers || {}),
-    },
+    headers,
     ...init,
   });
+  
+  console.log(`📡 API Response: ${path}`, { status: res.status, ok: res.ok });
+  
   if (!res.ok) {
     const text = await res.text().catch(() => "");
+    console.error(`❌ API Error: ${path}`, { status: res.status, text });
     throw new Error(`API ${path} failed: ${res.status} ${text}`);
   }
-  return res.json();
+  
+  const data = await res.json();
+  console.log(`✅ API Success: ${path}`, data);
+  return data;
 }
 
 /** -----------------------------
  *  Backend-powered functions
  *  ----------------------------- */
-export async function fetchDashboard(): Promise<DashboardResponse> {
+export async function fetchDashboard(userId?: string): Promise<DashboardResponse> {
   // Vite proxy should forward /api/* to backend (vite.config.ts)
-  return api<DashboardResponse>("/api/dashboard");
+  const url = userId ? `/api/dashboard?userId=${userId}&_t=${Date.now()}` : `/api/dashboard?_t=${Date.now()}`;
+  return api<DashboardResponse>(url, undefined, userId);
 }
 
 export async function fetchMe(): Promise<User> {
   return api<User>("/api/auth/me");
 }
 
-export async function fetchMyTrips(): Promise<Trip[]> {
-  return api<Trip[]>("/api/trips/my");
+export async function fetchMyTrips(userId?: string): Promise<Trip[]> {
+  const url = userId ? `/api/trips/my?userId=${userId}&_t=${Date.now()}` : `/api/trips/my?_t=${Date.now()}`;
+  return api<Trip[]>(url, undefined, userId);
 }
 
 export async function fetchTripsByStatus(
-  status: "ongoing" | "upcoming" | "completed"
+  status: "ongoing" | "upcoming" | "completed",
+  userId?: string
 ): Promise<Trip[]> {
-  return api<Trip[]>(`/api/trips?status=${status}`);
+  const url = userId ? `/api/trips?status=${status}&userId=${userId}&_t=${Date.now()}` : `/api/trips?status=${status}&_t=${Date.now()}`;
+  return api<Trip[]>(url, undefined, userId);
 }
 
 export async function searchActivities(params: {

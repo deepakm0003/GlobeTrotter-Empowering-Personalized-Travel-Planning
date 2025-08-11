@@ -15,7 +15,7 @@ import {
 const sidebarItems = [
   { icon: Home, label: 'Dashboard', path: '/dashboard' },
   { icon: Map, label: 'My Trips', path: '/trips' },
-  { icon: PlusCircle, label: 'Create Trip', path: '/create-trip' },
+  { icon: PlusCircle, label: 'Create Trip', path: '/trips/create' },
   { icon: Calendar, label: 'Calendar', path: '/calendar' },
   { icon: DollarSign, label: 'Budget', path: '/budget' },
   { icon: Activity, label: 'Activities', path: '/activity-search' },
