@@ -1,15 +1,22 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
 import { User, Trip } from '../types';
 
 interface AppContextType {
   user: User | null;
   setUser: (user: User | null) => void;
+
   trips: Trip[];
   setTrips: (trips: Trip[]) => void;
+
   currentTrip: Trip | null;
   setCurrentTrip: (trip: Trip | null) => void;
+
   isLoading: boolean;
   setIsLoading: (loading: boolean) => void;
+
+  /** 🔁 bump this to tell listeners (Dashboard, etc.) to refetch */
+  refreshKey: number;
+  bumpRefresh: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -32,6 +39,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [currentTrip, setCurrentTrip] = useState<Trip | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  // 🔔 signal used to trigger re-fetches across the app
+  const [refreshKey, setRefreshKey] = useState(0);
+  const bumpRefresh = useCallback(() => setRefreshKey((k) => k + 1), []);
+
   const value: AppContextType = {
     user,
     setUser,
@@ -41,11 +52,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     setCurrentTrip,
     isLoading,
     setIsLoading,
+    refreshKey,
+    bumpRefresh,
   };
 
-  return (
-    <AppContext.Provider value={value}>
-      {children}
-    </AppContext.Provider>
-  );
+  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

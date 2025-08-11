@@ -1,189 +1,104 @@
-import { User, Trip, City, Activity } from '../types';
+// src/data/mockData.ts
+// Backend-first data helpers for dashboard/trips.
+// Old mock exports are kept (empty) so existing imports don't crash.
 
-export const mockUser: User = {
-  id: '1',
-  name: 'Sarah Johnson',
-  email: 'sarah@example.com',
-  avatar: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2',
-  preferences: {
-    currency: 'USD',
-    language: 'en',
-    notifications: true,
-  },
+import { User, Trip, City, Activity } from "../types";
+
+/** -----------------------------
+ *  Backend response contracts
+ *  ----------------------------- */
+export type DashboardStats = {
+  totalTrips: number;
+  countriesVisited: number;
+  upcomingTrips: number;
+  totalSpent: number;
+  nextTripLabel?: string;
 };
 
-export const mockCities: City[] = [
-  {
-    id: '1',
-    name: 'Paris',
-    country: 'France',
-    region: 'Europe',
-    costIndex: 85,
-    popularity: 95,
-    imageUrl: 'https://images.pexels.com/photos/338515/pexels-photo-338515.jpeg?auto=compress&cs=tinysrgb&w=400',
-    description: 'The City of Light, known for its art, fashion, and romance.',
-    currency: 'EUR',
-    averageDailyCost: 120,
-  },
-  {
-    id: '2',
-    name: 'Tokyo',
-    country: 'Japan',
-    region: 'Asia',
-    costIndex: 75,
-    popularity: 90,
-    imageUrl: 'https://images.pexels.com/photos/2187605/pexels-photo-2187605.jpeg?auto=compress&cs=tinysrgb&w=400',
-    description: 'A vibrant metropolis blending tradition and modernity.',
-    currency: 'JPY',
-    averageDailyCost: 100,
-  },
-  {
-    id: '3',
-    name: 'New York',
-    country: 'United States',
-    region: 'North America',
-    costIndex: 90,
-    popularity: 85,
-    imageUrl: 'https://images.pexels.com/photos/466685/pexels-photo-466685.jpeg?auto=compress&cs=tinysrgb&w=400',
-    description: 'The Big Apple, a city that never sleeps.',
-    currency: 'USD',
-    averageDailyCost: 150,
-  },
-  {
-    id: '4',
-    name: 'Bali',
-    country: 'Indonesia',
-    region: 'Asia',
-    costIndex: 40,
-    popularity: 80,
-    imageUrl: 'https://images.pexels.com/photos/2169434/pexels-photo-2169434.jpeg?auto=compress&cs=tinysrgb&w=400',
-    description: 'Tropical paradise with beautiful beaches and culture.',
-    currency: 'IDR',
-    averageDailyCost: 50,
-  },
-  {
-    id: '5',
-    name: 'London',
-    country: 'United Kingdom',
-    region: 'Europe',
-    costIndex: 88,
-    popularity: 92,
-    imageUrl: 'https://images.pexels.com/photos/460672/pexels-photo-460672.jpeg?auto=compress&cs=tinysrgb&w=400',
-    description: 'Historic capital with rich culture and royal heritage.',
-    currency: 'GBP',
-    averageDailyCost: 130,
-  },
-];
+export type DashboardResponse = {
+  stats: DashboardStats;
+  recentTrips: Array<{
+    id: string;
+    name: string;
+    coverPhoto: string;
+    startDate: string; // ISO
+    endDate: string;   // ISO
+    estimatedCost: number;
+    stopsCount: number;
+  }>;
+  popularDestinations: Array<{
+    id: string;
+    name: string;
+    country: string;
+    imageUrl: string;
+    averageDailyCost: number;
+    popularity: number; // 0..100
+  }>;
+};
 
-export const mockActivities: Activity[] = [
-  {
-    id: '1',
-    name: 'Eiffel Tower Visit',
-    description: 'Iconic iron lattice tower with stunning city views',
-    category: 'sightseeing',
-    cost: 25,
-    duration: 3,
-    rating: 4.8,
-    imageUrl: 'https://images.pexels.com/photos/699466/pexels-photo-699466.jpeg?auto=compress&cs=tinysrgb&w=300',
-    cityId: '1',
-    isBooked: false,
-  },
-  {
-    id: '2',
-    name: 'Louvre Museum',
-    description: 'World-famous art museum featuring the Mona Lisa',
-    category: 'culture',
-    cost: 17,
-    duration: 4,
-    rating: 4.7,
-    imageUrl: 'https://images.pexels.com/photos/2225442/pexels-photo-2225442.jpeg?auto=compress&cs=tinysrgb&w=300',
-    cityId: '1',
-    isBooked: false,
-  },
-  {
-    id: '3',
-    name: 'Tokyo Sushi Making Class',
-    description: 'Learn to make authentic sushi with local chef',
-    category: 'food',
-    cost: 80,
-    duration: 2,
-    rating: 4.9,
-    imageUrl: 'https://images.pexels.com/photos/2098085/pexels-photo-2098085.jpeg?auto=compress&cs=tinysrgb&w=300',
-    cityId: '2',
-    isBooked: false,
-  },
-];
+/** -----------------------------
+ *  Small fetch wrapper
+ *  ----------------------------- */
+async function api<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(path, {
+    headers: {
+      "Content-Type": "application/json",
+      // If you’re using mockAuth on the backend, you can pass x-user-id here:
+      // "x-user-id": "<seeded-user-id>"
+      ...(init?.headers || {}),
+    },
+    ...init,
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`API ${path} failed: ${res.status} ${text}`);
+  }
+  return res.json();
+}
 
-export const mockTrips: Trip[] = [
-  {
-    id: '1',
-    name: 'European Summer Adventure',
-    description: 'A magical journey through the most beautiful cities of Europe',
-    startDate: '2025-06-15',
-    endDate: '2025-06-30',
-    coverPhoto: 'https://images.pexels.com/photos/1285625/pexels-photo-1285625.jpeg?auto=compress&cs=tinysrgb&w=800',
-    totalBudget: 3000,
-    estimatedCost: 2850,
-    isPublic: true,
-    userId: '1',
-    stops: [
-      {
-        id: '1',
-        tripId: '1',
-        cityId: '1',
-        city: mockCities[0],
-        arrivalDate: '2025-06-15',
-        departureDate: '2025-06-20',
-        accommodation: 'Hotel Plaza Athenee',
-        accommodationCost: 600,
-        transportCost: 200,
-        activities: [mockActivities[0], mockActivities[1]],
-        order: 1,
-      },
-      {
-        id: '2',
-        tripId: '1',
-        cityId: '5',
-        city: mockCities[4],
-        arrivalDate: '2025-06-20',
-        departureDate: '2025-06-25',
-        accommodation: 'The Savoy London',
-        accommodationCost: 750,
-        transportCost: 150,
-        activities: [],
-        order: 2,
-      },
-    ],
-    createdAt: '2025-01-01',
-    updatedAt: '2025-01-01',
-  },
-  {
-    id: '2',
-    name: 'Asia Discovery Tour',
-    description: 'Exploring the vibrant cultures of Asia',
-    startDate: '2025-08-10',
-    endDate: '2025-08-25',
-    coverPhoto: 'https://images.pexels.com/photos/1440476/pexels-photo-1440476.jpeg?auto=compress&cs=tinysrgb&w=800',
-    totalBudget: 2500,
-    estimatedCost: 2200,
-    isPublic: false,
-    userId: '1',
-    stops: [
-      {
-        id: '3',
-        tripId: '2',
-        cityId: '2',
-        city: mockCities[1],
-        arrivalDate: '2025-08-10',
-        departureDate: '2025-08-17',
-        accommodation: 'Park Hyatt Tokyo',
-        accommodationCost: 700,
-        transportCost: 300,
-        activities: [mockActivities[2]],
-        order: 1,
-      },
-    ],
-    createdAt: '2025-01-05',
-    updatedAt: '2025-01-05',
-  },
-];
+/** -----------------------------
+ *  Backend-powered functions
+ *  ----------------------------- */
+export async function fetchDashboard(): Promise<DashboardResponse> {
+  // Vite proxy should forward /api/* to backend (vite.config.ts)
+  return api<DashboardResponse>("/api/dashboard");
+}
+
+export async function fetchMe(): Promise<User> {
+  return api<User>("/api/auth/me");
+}
+
+export async function fetchMyTrips(): Promise<Trip[]> {
+  return api<Trip[]>("/api/trips/my");
+}
+
+export async function fetchTripsByStatus(
+  status: "ongoing" | "upcoming" | "completed"
+): Promise<Trip[]> {
+  return api<Trip[]>(`/api/trips?status=${status}`);
+}
+
+export async function searchActivities(params: {
+  city?: string;
+  category?: string;
+  costMax?: number;
+}): Promise<Activity[]> {
+  const q = new URLSearchParams();
+  if (params.city) q.set("city", params.city);
+  if (params.category) q.set("category", params.category);
+  if (typeof params.costMax === "number") q.set("costMax", String(params.costMax));
+  return api<Activity[]>(`/api/activities/search?${q.toString()}`);
+}
+
+export async function fetchPublicTripsByRegion(region: string): Promise<Trip[]> {
+  return api<Trip[]>(`/api/trips/public?region=${encodeURIComponent(region)}`);
+}
+
+/** -----------------------------
+ *  Legacy mock exports (now empty)
+ *  Keep names so old imports don’t crash.
+ *  ----------------------------- */
+export const mockUser: User | null = null;
+export const mockCities: City[] = [];
+export const mockActivities: Activity[] = [];
+export const mockTrips: Trip[] = [];
