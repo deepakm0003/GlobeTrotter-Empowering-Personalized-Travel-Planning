@@ -106,7 +106,7 @@ const TripsList: React.FC = () => {
           <p className="text-slate-400 mt-1">Manage and explore your travel adventures</p>
         </div>
         <button
-          onClick={() => navigate('/create-trip')}
+          onClick={() => navigate('/trips/create')}
           className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all duration-200 flex items-center space-x-2"
         >
           <Plus className="h-5 w-5" />
@@ -147,7 +147,7 @@ const TripsList: React.FC = () => {
           <h3 className="text-xl font-medium text-white mb-2">No trips yet</h3>
           <p className="text-slate-400 mb-6">Start planning your first adventure!</p>
           <button
-            onClick={() => navigate('/create-trip')}
+            onClick={() => navigate('/trips/create')}
             className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all duration-200"
           >
             Create Your First Trip

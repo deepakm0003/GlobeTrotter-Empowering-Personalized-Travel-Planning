@@ -5,14 +5,17 @@ async function main() {
   console.log('🌱 Seeding database...');
 
   // user
+  const bcrypt = require('bcryptjs');
+  const passwordHash = await bcrypt.hash('password123', 10);
   const user = await prisma.user.upsert({
     where: { email: 'sarah@example.com' },
-    update: {},
+    update: { passwordHash },
     create: {
       name: 'Sarah Johnson',
       email: 'sarah@example.com',
       avatar: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2',
       preferences: { currency: 'USD', language: 'en', notifications: true },
+      passwordHash,
     },
   });
 
@@ -55,7 +58,6 @@ async function main() {
         currency: 'GBP', averageDailyCost: 130,
       },
     ],
-    skipDuplicates: true,
   });
 
   // get city ids (since City.id is autoincrement int)
@@ -95,40 +97,8 @@ async function main() {
     ],
   });
 
-  // trips (include destinationCity/Country so dashboard can compute)
-  await prisma.trip.create({
-    data: {
-      name: 'European Summer Adventure',
-      description: 'A magical journey through the most beautiful cities of Europe',
-      coverPhoto: 'https://images.pexels.com/photos/1285625/pexels-photo-1285625.jpeg?auto=compress&cs=tinysrgb&w=800',
-      startDate: new Date('2025-06-15'),
-      endDate:   new Date('2025-06-30'),
-      destinationCity: 'Paris',
-      destinationCountry: 'France',
-      totalBudget: 3000,
-      estimatedCost: 2850,
-      isPublic: true,
-      userId: user.id,
-    },
-  });
-
-  await prisma.trip.create({
-    data: {
-      name: 'Asia Discovery Tour',
-      description: 'Exploring the vibrant cultures of Asia',
-      coverPhoto: 'https://images.pexels.com/photos/1440476/pexels-photo-1440476.jpeg?auto=compress&cs=tinysrgb&w=800',
-      startDate: new Date('2025-08-10'),
-      endDate:   new Date('2025-08-25'),
-      destinationCity: 'Tokyo',
-      destinationCountry: 'Japan',
-      totalBudget: 2500,
-      estimatedCost: 2200,
-      isPublic: false,
-      userId: user.id,
-    },
-  });
-
-  console.log('✅ Seed complete');
+  // No hardcoded trips - users start with a clean slate
+  console.log('✅ Seed complete - No hardcoded trips created');
 }
 
 main().catch((e) => {

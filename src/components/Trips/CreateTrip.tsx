@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 
 const CreateTrip: React.FC = () => {
   const navigate = useNavigate();
-  const { bumpRefresh } = useApp();
+  const { bumpRefresh, user } = useApp();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -22,6 +22,11 @@ const CreateTrip: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!user?.id) {
+      toast.error('Please log in to create a trip');
+      return;
+    }
 
     if (
       !formData.name ||
@@ -44,6 +49,7 @@ const CreateTrip: React.FC = () => {
       destinationCountry: formData.country,
       totalBudget: Number(formData.budget || 0),
       estimatedCost: 0,
+      userId: user.id, // Include user ID
     };
 
     try {

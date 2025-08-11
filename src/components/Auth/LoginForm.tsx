@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock, Globe } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { mockUser } from '../../data/mockData';
 import toast from 'react-hot-toast';
 
 const LoginForm: React.FC = () => {
@@ -23,13 +22,25 @@ const LoginForm: React.FC = () => {
 
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      setUser(mockUser);
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      if (!res.ok) {
+        const { error } = await res.json().catch(() => ({ error: 'Login failed' }));
+        throw new Error(error);
+      }
+      const data = await res.json();
+      setUser(data.user);
       toast.success('Welcome back!');
       navigate('/dashboard');
+    } catch (err: any) {
+      toast.error(err.message || 'Login failed');
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (

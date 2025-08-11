@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react';
 import { User, Trip } from '../types';
+import { fetchMyTrips } from '../data/mockData';
 
 interface AppContextType {
   user: User | null;
@@ -42,6 +43,33 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // 🔔 signal used to trigger re-fetches across the app
   const [refreshKey, setRefreshKey] = useState(0);
   const bumpRefresh = useCallback(() => setRefreshKey((k) => k + 1), []);
+
+  // Load user's trips when user changes
+  useEffect(() => {
+    const loadUserTrips = async () => {
+      if (user?.id) {
+        try {
+          console.log('Loading trips for user:', user.id);
+          setIsLoading(true);
+          const userTrips = await fetchMyTrips(user.id);
+          console.log('Loaded trips:', userTrips.length);
+          setTrips(userTrips);
+        } catch (error) {
+          console.error('Failed to load user trips:', error);
+          setTrips([]);
+        } finally {
+          setIsLoading(false);
+        }
+      } else {
+        console.log('No user ID, clearing trips');
+        // Clear trips when user logs out
+        setTrips([]);
+        setCurrentTrip(null);
+      }
+    };
+
+    loadUserTrips();
+  }, [user?.id]);
 
   const value: AppContextType = {
     user,
