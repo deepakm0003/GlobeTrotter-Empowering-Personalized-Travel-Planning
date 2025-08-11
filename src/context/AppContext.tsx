@@ -5,6 +5,7 @@ import { fetchMyTrips } from '../data/mockData';
 interface AppContextType {
   user: User | null;
   setUser: (user: User | null) => void;
+  logout: () => void; // Add logout function
 
   trips: Trip[];
   setTrips: (trips: Trip[]) => void;
@@ -44,6 +45,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [refreshKey, setRefreshKey] = useState(0);
   const bumpRefresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
+  // Logout function to properly clear user data
+  const logout = useCallback(() => {
+    console.log('Logging out user, clearing all data');
+    setUser(null);
+    setTrips([]);
+    setCurrentTrip(null);
+    setRefreshKey(0);
+  }, []);
+
   // Load user's trips when user changes
   useEffect(() => {
     const loadUserTrips = async () => {
@@ -74,6 +84,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const value: AppContextType = {
     user,
     setUser,
+    logout,
     trips,
     setTrips,
     currentTrip,
