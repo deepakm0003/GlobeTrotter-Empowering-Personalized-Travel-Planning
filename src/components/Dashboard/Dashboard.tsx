@@ -3,6 +3,7 @@ import { TrendingUp, MapPin, Calendar, DollarSign, Plus, Globe, Plane, User, Ref
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { format } from 'date-fns';
+import WeatherWidget from '../../components/WeatherWidget'; // 👈 NEW
 
 // API helper
 import { fetchDashboard, type DashboardResponse } from '../../data/mockData';
@@ -96,6 +97,9 @@ const Dashboard: React.FC = () => {
 
   const hasTrips = data.stats.totalTrips > 0;
 
+  // Use API data for popular destinations
+  const popularDestinations = data.popularDestinations;
+
   return (
     <div className="space-y-8">
       {/* Welcome Section */}
@@ -144,6 +148,7 @@ const Dashboard: React.FC = () => {
                 <div className={`h-12 w-12 rounded-lg bg-gradient-to-r ${stat.color} flex items-center justify-center`}>
                   <Icon className="h-6 w-6 text-white" />
                 </div>
+                
                 <span className={`text-xs px-2 py-1 rounded-full ${
                   hasTrips 
                     ? 'text-emerald-400 bg-emerald-400/10' 
@@ -159,6 +164,7 @@ const Dashboard: React.FC = () => {
         })}
       </div>
 
+      {/* Recent Trips and Weather Widget Side by Side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Recent Trips */}
         <div className="bg-slate-800/50 backdrop-blur-lg border border-slate-700/50 rounded-xl p-6">
@@ -210,40 +216,88 @@ const Dashboard: React.FC = () => {
           )}
         </div>
 
-        {/* Popular Destinations */}
-        <div className="bg-slate-800/50 backdrop-blur-lg border border-slate-700/50 rounded-xl p-6">
+        {/* Weather Widget */}
+        <div className="bg-slate-800/50 backdrop-blur-lg border border-slate-700/50 rounded-xl p-4">
+          <WeatherWidget
+            apiBase="http://localhost:5174"
+            defaultQuery="weather in New York"
+            title="Quick Weather"
+            height={150}
+          />
+        </div>
+      </div>
+
+      {/* Popular Destinations - Full Width Below */}
+      <div className="bg-slate-800/50 backdrop-blur-lg border border-slate-700/50 rounded-xl p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold text-white">Popular Destinations</h2>
-            <button className="text-blue-400 hover:text-blue-300 text-sm font-medium">
-              Explore more
+            <button
+              onClick={() => navigate('/city-search')}
+              className="text-blue-400 hover:text-blue-300 text-sm font-medium"
+            >
+              Explore all
             </button>
           </div>
-          <div className="space-y-4">
-            {data.popularDestinations.slice(0, 4).map((city) => (
-              <div key={city.id} className="flex items-center space-x-4 p-4 bg-slate-700/30 rounded-lg hover:bg-slate-700/50 transition-all duration-200 cursor-pointer">
-                <img src={city.imageUrl} alt={city.name} className="h-12 w-12 rounded-lg object-cover" />
-                <div className="flex-1">
-                  <h3 className="font-medium text-white">{city.name}</h3>
-                  <p className="text-sm text-slate-400">{city.country}</p>
-                </div>
-                <div className="text-right">
-                  <div className="flex items-center space-x-1">
-                    {[...Array(5)].map((_, i) => (
-                      <div
-                        key={i}
-                        className={`h-2 w-2 rounded-full ${
-                          i < Math.floor(city.popularity / 20) ? 'bg-yellow-400' : 'bg-slate-600'
-                        }`}
-                      />
-                    ))}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {popularDestinations.slice(0, 6).map((city) => (
+              <div 
+                key={city.id} 
+                className="group relative overflow-hidden bg-slate-700/30 rounded-lg hover:bg-slate-700/50 transition-all duration-300 cursor-pointer transform hover:scale-105"
+                onClick={() => navigate(`/city-search?city=${encodeURIComponent(city.name)}`)}
+              >
+                <div className="relative h-24 w-full">
+                  <img 
+                    src={city.imageUrl} 
+                    alt={city.name} 
+                    className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-300" 
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                  <div className="absolute bottom-2 left-3 right-3">
+                    <h3 className="font-semibold text-white text-sm truncate">{city.name}</h3>
+                    <p className="text-slate-200 text-xs">{city.country}</p>
                   </div>
-                  <p className="text-xs text-slate-400 mt-1">${city.averageDailyCost}/day</p>
+                </div>
+                <div className="p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-1">
+                      {[...Array(5)].map((_, i) => (
+                        <div
+                          key={i}
+                          className={`h-1.5 w-1.5 rounded-full ${
+                            i < Math.floor(city.popularity / 20) ? 'bg-yellow-400' : 'bg-slate-600'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-xs text-green-400 font-medium">${city.averageDailyCost}/day</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-400">Popularity: {city.popularity}%</span>
+                    <div className="text-xs text-blue-400 group-hover:text-blue-300 transition-colors">
+                      Explore →
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
+          {popularDestinations.length === 0 && (
+            <div className="text-center py-12">
+              <div className="h-16 w-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <MapPin className="h-8 w-8 text-white" />
+              </div>
+              <h3 className="text-lg font-medium text-white mb-2">No destinations available</h3>
+              <p className="text-slate-400 mb-6">Explore amazing cities around the world</p>
+              <button
+                onClick={() => navigate('/city-search')}
+                className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors flex items-center space-x-2 mx-auto"
+              >
+                <MapPin className="h-4 w-4" />
+                <span>Explore Cities</span>
+              </button>
+            </div>
+          )}
         </div>
-      </div>
 
       {/* Empty State for New Users */}
       {!hasTrips && (
@@ -257,15 +311,15 @@ const Dashboard: React.FC = () => {
             Plan your itinerary, set your budget, and start exploring!
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                         <button
-               onClick={() => navigate('/trips/create')}
-               className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-8 py-3 rounded-lg font-medium hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2"
-             >
-               <Plus className="h-5 w-5" />
-               <span>Create Your First Trip</span>
-             </button>
             <button
-              onClick={() => navigate('/search')}
+              onClick={() => navigate('/trips/create')}
+              className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-8 py-3 rounded-lg font-medium hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2"
+            >
+              <Plus className="h-5 w-5" />
+              <span>Create Your First Trip</span>
+            </button>
+            <button
+              onClick={() => navigate('/city-search')}
               className="bg-slate-700/50 text-white px-8 py-3 rounded-lg font-medium hover:bg-slate-700/70 transition-all duration-200 flex items-center justify-center space-x-2"
             >
               <MapPin className="h-5 w-5" />

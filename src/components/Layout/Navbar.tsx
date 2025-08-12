@@ -1,18 +1,11 @@
 import React from 'react';
-import { Bell, Search, Settings, User, LogOut } from 'lucide-react';
+import { Bell, Search, Settings, User } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useNavigate } from 'react-router-dom';
-import toast from 'react-hot-toast';
 
 const Navbar: React.FC = () => {
-  const { user, logout } = useApp();
+  const { user } = useApp();
   const navigate = useNavigate();
-
-  const handleLogout = () => {
-    logout();
-    toast.success('Logged out successfully');
-    navigate('/login');
-  };
 
   return (
     <nav className="bg-slate-800/50 backdrop-blur-lg border-b border-slate-700/50 px-6 py-4">
@@ -38,14 +31,6 @@ const Navbar: React.FC = () => {
             className="p-2 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-all duration-200"
           >
             <Settings className="h-5 w-5" />
-          </button>
-
-          <button 
-            onClick={handleLogout}
-            className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all duration-200"
-            title="Logout"
-          >
-            <LogOut className="h-5 w-5" />
           </button>
 
           <div className="flex items-center space-x-3 pl-4 border-l border-slate-700/50">

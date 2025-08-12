@@ -13,56 +13,55 @@ export interface User {
 export interface Trip {
   id: string;
   name: string;
-  description: string;
+  description?: string;
+  coverPhoto?: string;
   startDate: string;
   endDate: string;
-  coverPhoto?: string;
-  totalBudget: number;
-  estimatedCost: number;
-  isPublic: boolean;
-  userId: string;
-  stops: TripStop[];
-  createdAt: string;
-  updatedAt: string;
+  destinationCity: string;
+  destinationCountry: string;
+  totalBudget?: number;
+  estimatedCost?: number;
+  isPublic?: boolean;
+  userId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  stops?: TripStop[];
 }
 
 export interface TripStop {
   id: string;
-  tripId: string;
-  cityId: string;
-  city: City;
+  cityId: number;
+  cityName: string;
+  country: string;
   arrivalDate: string;
   departureDate: string;
-  accommodation?: string;
-  accommodationCost: number;
-  transportCost: number;
   activities: Activity[];
-  order: number;
+  notes?: string;
 }
 
 export interface City {
-  id: string;
+  id: number;
   name: string;
   country: string;
-  region: string;
-  costIndex: number;
-  popularity: number;
-  imageUrl: string;
-  description: string;
-  currency: string;
-  averageDailyCost: number;
+  region?: string;
+  costIndex?: number;
+  popularity?: number;
+  imageUrl?: string;
+  description?: string;
+  currency?: string;
+  averageDailyCost?: number;
 }
 
 export interface Activity {
-  id: string;
+  id: number;
   name: string;
-  description: string;
-  category: ActivityCategory;
-  cost: number;
-  duration: number; // in hours
-  rating: number;
-  imageUrl: string;
-  cityId: string;
+  description?: string;
+  category?: ActivityCategory;
+  cost?: number;
+  duration?: number; // in hours
+  rating?: number;
+  imageUrl?: string;
+  cityId: number;
   isBooked: boolean;
 }
 
@@ -83,4 +82,25 @@ export interface BudgetBreakdown {
   meals: number;
   miscellaneous: number;
   total: number;
+}
+
+export interface SharedTrip {
+  id: string;
+  tripId: string;
+  sharedBy: string;
+  sharedWith?: string;
+  shareMethod: 'email' | 'link';
+  shareUrl?: string;
+  sharedAt: string;
+  isActive: boolean;
+  trip: {
+    id: string;
+    name: string;
+    destinationCity: string;
+    destinationCountry: string;
+    startDate: string;
+    endDate: string;
+    coverPhoto?: string;
+    isPublic: boolean;
+  };
 }

@@ -1,0 +1,72 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Weather Chatbot</title>
+  <style>
+    body { font-family: system-ui, Arial; max-width: 720px; margin: 40px auto; padding: 0 16px; }
+    .chat { border: 1px solid #ddd; border-radius: 8px; padding: 12px; min-height: 320px; display:flex; flex-direction:column; }
+    .bubble { padding: 10px 12px; border-radius: 10px; margin: 8px 0; max-width: 90%; }
+    .user { background:#e8f0ff; align-self: flex-end; }
+    .bot  { background:#f6f6f6; align-self: flex-start; }
+    .row { display:flex; gap:8px; margin-top:12px; }
+    .input { flex:1; padding:10px; border:1px solid #ccc; border-radius:8px; }
+    button { padding:10px 14px; border:0; border-radius:8px; background:#111; color:#fff; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <h1>Weather Chatbot</h1>
+  <div class="chat" id="chat"></div>
+  <div class="row">
+    <input id="msg" class="input" placeholder="Try: what's the weather in Tokyo?" />
+    <button id="send">Send</button>
+  </div>
+
+  <script>
+    const chat = document.getElementById('chat');
+    const msg  = document.getElementById('msg');
+    const send = document.getElementById('send');
+
+    function addBubble(text, who="bot") {
+      const div = document.createElement('div');
+      div.className = `bubble ${who}`;
+      div.textContent = text;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    addBubble("Hi! Ask me: what's the weather in Tokyo?");
+
+    async function sendMessage() {
+      const text = msg.value.trim();
+      if (!text) return;
+      addBubble(text, "user");
+      msg.value = "";
+
+      try {
+        const res = await fetch("/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: text })
+        });
+
+        const raw = await res.text();
+        let data;
+        try { data = JSON.parse(raw); } catch { data = { reply: raw || "Non-JSON response." }; }
+
+        if (!res.ok) {
+          addBubble(data.reply || `HTTP ${res.status}: ${raw}`);
+          return;
+        }
+        addBubble(data.reply || "No reply.");
+      } catch (e) {
+        addBubble(`Network error: ${e.message}. Is the server running at http://localhost:${location.port || 5174}?`);
+      }
+    }
+
+    send.addEventListener("click", sendMessage);
+    msg.addEventListener("keydown", (e) => { if (e.key === "Enter") sendMessage(); });
+  </script>
+</body>
+</html>

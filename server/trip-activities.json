@@ -1,0 +1,30 @@
+{
+  "cme7s212p0001y5iskpud6yez": {
+    "tripId": "cme7s212p0001y5iskpud6yez",
+    "stops": [
+      {
+        "id": "default-stop",
+        "cityId": 544,
+        "cityName": "New York City",
+        "country": "United States",
+        "arrivalDate": "2025-08-12",
+        "departureDate": "2025-08-12",
+        "activities": [
+          {
+            "id": 274,
+            "name": "asd",
+            "description": "asd",
+            "category": "sightseeing",
+            "cost": 0,
+            "duration": 2,
+            "date": "2025-08-12",
+            "stopId": "default-stop",
+            "cityId": 544,
+            "cityName": "New York City",
+            "isBooked": false
+          }
+        ]
+      }
+    ]
+  }
+}

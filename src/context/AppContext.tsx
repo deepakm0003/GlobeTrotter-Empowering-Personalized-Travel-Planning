@@ -5,7 +5,8 @@ import { fetchMyTrips } from '../data/mockData';
 interface AppContextType {
   user: User | null;
   setUser: (user: User | null) => void;
-  logout: () => void; // Add logout function
+  logout: () => void;
+  login: (user: User) => void;
 
   trips: Trip[];
   setTrips: (trips: Trip[]) => void;
@@ -19,6 +20,10 @@ interface AppContextType {
   /** 🔁 bump this to tell listeners (Dashboard, etc.) to refetch */
   refreshKey: number;
   bumpRefresh: () => void;
+
+  /** 🔄 bump this to tell SharedTripsPage to refetch shared trips */
+  sharedTripsRefreshKey: number;
+  bumpSharedTripsRefresh: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -45,6 +50,46 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [refreshKey, setRefreshKey] = useState(0);
   const bumpRefresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
+  // 🔄 signal used to trigger re-fetches for shared trips
+  const [sharedTripsRefreshKey, setSharedTripsRefreshKey] = useState(0);
+  const bumpSharedTripsRefresh = useCallback(() => setSharedTripsRefreshKey((k) => k + 1), []);
+
+  // Add this to handle Google auth tokens
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token && !user) {
+      verifyToken(token);
+    } else if (!token && !user) {
+      // No token and no user, this is expected for unauthenticated users
+      console.log('No authentication token found');
+    }
+  }, []);
+
+  const verifyToken = async (token: string) => {
+    try {
+      const response = await fetch('/api/auth/verify-token', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const { user } = await response.json();
+        console.log('Token verified successfully, user:', user);
+        setUser(user);
+      } else {
+        console.log('Token verification failed, removing token');
+        localStorage.removeItem('token');
+        setUser(null);
+      }
+    } catch (error) {
+      console.error('Token verification error:', error);
+      localStorage.removeItem('token');
+      setUser(null);
+    }
+  };
+
   // Logout function to properly clear user data
   const logout = useCallback(() => {
     console.log('Logging out user, clearing all data');
@@ -52,6 +97,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     setTrips([]);
     setCurrentTrip(null);
     setRefreshKey(0);
+    setSharedTripsRefreshKey(0); // Clear shared trips refresh key on logout
+    localStorage.removeItem('token');
+  }, []);
+
+  // Login function
+  const login = useCallback((user: User) => {
+    setUser(user);
   }, []);
 
   // Load user's trips when user changes
@@ -82,6 +134,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     user,
     setUser,
     logout,
+    login,
     trips,
     setTrips,
     currentTrip,
@@ -90,6 +143,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     setIsLoading,
     refreshKey,
     bumpRefresh,
+    sharedTripsRefreshKey,
+    bumpSharedTripsRefresh,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

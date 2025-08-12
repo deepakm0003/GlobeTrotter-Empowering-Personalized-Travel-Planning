@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Calendar, MapPin, Clock, DollarSign, Share2, Edit, Download, Eye, EyeOff } from 'lucide-react';
+import { Calendar, MapPin, Clock, DollarSign, Share2, Edit, Download, Eye, EyeOff, Mail } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { format, differenceInDays } from 'date-fns';
 import toast from 'react-hot-toast';
@@ -33,14 +33,65 @@ const ItineraryView: React.FC = () => {
     stop.activities.reduce((actSum, act) => actSum + act.cost, 0), 0
   );
 
-  const shareTrip = () => {
-    const url = `${window.location.origin}/shared/${trip.id}`;
-    navigator.clipboard.writeText(url);
-    toast.success('Trip link copied to clipboard!');
+  const shareTrip = async () => {
+    try {
+      const response = await fetch(`/api/trips/${trip.id}/share-link`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        await navigator.clipboard.writeText(result.shareUrl);
+        toast.success('Share link generated and copied to clipboard!');
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Failed to generate share link');
+      }
+    } catch (error) {
+      console.error('Error generating share link:', error);
+      toast.error('Failed to generate share link. Please try again.');
+    }
   };
 
   const togglePublic = () => {
     toast.success(trip.isPublic ? 'Trip made private' : 'Trip made public');
+  };
+
+  const handleEmailShare = async () => {
+    const recipientEmail = prompt('Enter email address to share with:');
+    if (!recipientEmail) return;
+
+    try {
+      const response = await fetch('/api/trips/share-email-simple', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tripId: trip.id,
+          recipientEmail: recipientEmail
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.emailSent) {
+          toast.success('Itinerary shared successfully via email!');
+        } else {
+          toast.success('Trip made public! Share URL: ' + result.shareUrl);
+        }
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Failed to share itinerary');
+      }
+    } catch (error) {
+      console.error('Error sharing trip:', error);
+      toast.error('Failed to share itinerary. Please try again.');
+    }
   };
 
   return (
@@ -84,8 +135,16 @@ const ItineraryView: React.FC = () => {
             <button
               onClick={shareTrip}
               className="p-3 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition-all duration-200"
+              title="Copy share link"
             >
               <Share2 className="h-5 w-5" />
+            </button>
+            <button
+              onClick={handleEmailShare}
+              className="p-3 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition-all duration-200"
+              title="Share via email"
+            >
+              <Mail className="h-5 w-5" />
             </button>
             <button
               onClick={() => navigate(`/itinerary-builder/${trip.id}`)}

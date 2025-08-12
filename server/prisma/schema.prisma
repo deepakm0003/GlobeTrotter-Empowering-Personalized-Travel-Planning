@@ -16,6 +16,7 @@ model User {
   passwordHash String?
   trips       Trip[]
   passwordResets PasswordReset[]
+  googleId    String?  @unique
 }
 
 model PasswordReset {
@@ -73,4 +74,37 @@ model Trip {
   user               User?    @relation(fields: [userId], references: [id])
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
+  budgetItems        BudgetItem[]
+  sharedTrips        SharedTrip[]
+}
+
+model BudgetItem {
+  id          String   @id @default(cuid())
+  tripId      String
+  category    String   // transport, accommodation, activities, meals, other
+  description String
+  amount      Float
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@index([tripId])
+}
+
+model SharedTrip {
+  id            String   @id @default(cuid())
+  tripId        String
+  trip          Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  sharedBy      String   // User ID who shared the trip
+  sharedWith    String?  // Email address if shared via email, null if shared via link
+  shareMethod   String   // "email" or "link"
+  shareUrl      String?  // Generated share URL if shared via link
+  sharedAt      DateTime @default(now())
+  isActive      Boolean  @default(true) // Whether the share is still active
+  
+  @@index([tripId])
+  @@index([sharedBy])
+  @@index([sharedAt])
 }

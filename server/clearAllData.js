@@ -2,29 +2,29 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 async function clearAllData() {
+  console.log('🗑️ Clearing all data from database...\n');
+
   try {
-    console.log('🗑️ Clearing all data from database...\n');
+    // Delete all data in the correct order (respecting foreign key constraints)
+    console.log('📝 Deleting all activities...');
+    await prisma.activity.deleteMany({});
     
-    // Delete all trips first (due to foreign key constraints)
-    const deletedTrips = await prisma.trip.deleteMany({});
-    console.log(`✅ Deleted ${deletedTrips.count} trips`);
+    console.log('🏙️ Deleting all cities...');
+    await prisma.city.deleteMany({});
     
-    // Delete all users
-    const deletedUsers = await prisma.user.deleteMany({});
-    console.log(`✅ Deleted ${deletedUsers.count} users`);
+    console.log('✈️ Deleting all trips...');
+    await prisma.trip.deleteMany({});
     
-    // Note: We keep cities and activities as they are reference data
-    const cities = await prisma.city.findMany();
-    const activities = await prisma.activity.findMany();
+    console.log('🔑 Deleting all password resets...');
+    await prisma.passwordReset.deleteMany({});
     
-    console.log(`\n📊 Database Status:`);
-    console.log(`  - Users: 0`);
-    console.log(`  - Trips: 0`);
-    console.log(`  - Cities: ${cities.length} (reference data)`);
-    console.log(`  - Activities: ${activities.length} (reference data)`);
+    console.log('👤 Deleting all users...');
+    await prisma.user.deleteMany({});
     
-    console.log('\n✅ Database is now completely clean!');
-    console.log('🎯 New users can now sign up and start with a fresh experience.');
+    console.log('✅ All data cleared successfully!');
+    console.log('\n💡 Next steps:');
+    console.log('1. Run: npx prisma db seed');
+    console.log('2. This will create clean data without duplicates');
     
   } catch (error) {
     console.error('❌ Error clearing data:', error);
